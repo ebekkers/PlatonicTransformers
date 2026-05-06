@@ -65,6 +65,7 @@ scheduler:
 logging:
   enabled: true
   project_name: "Platonic-CIFAR10"
+  wandb_identity: "platonic-transformers-public"
 
 # System configuration
 system:

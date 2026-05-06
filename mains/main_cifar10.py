@@ -359,6 +359,7 @@ def main(config: ml_collections.ConfigDict) -> None:
         )
         logger = pl.loggers.WandbLogger(
             project=config.logging.project_name,
+            entity=config.logging.get("wandb_identity", None),
             config=config.to_dict(),
             save_dir=save_dir
         )
