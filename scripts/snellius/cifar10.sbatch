@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_h100
+#SBATCH --account=gusei11738
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
