@@ -7,14 +7,17 @@
 #SBATCH --output=/home/ebekkers/PlatonicTransformers/logs/%x_%j.out
 #SBATCH --error=/home/ebekkers/PlatonicTransformers/logs/%x_%j.err
 
-# Usage: sbatch -J <job_name> scripts/snellius/cifar10.sbatch <rope_on_values> [seed]
+# Usage: sbatch -J <job_name> scripts/snellius/cifar10.sbatch <rope_on_values> [seed] [extra_cli]
 # Example: sbatch -J cifar10-c4-rov0 scripts/snellius/cifar10.sbatch false
 #          sbatch -J cifar10-c4-rov1 scripts/snellius/cifar10.sbatch true 42
+#          sbatch -J cifar10-c4-rovsep scripts/snellius/cifar10.sbatch true 42 \
+#              "--model.rope_v_separate_freqs=true"
 
 set -euo pipefail
 
 ROPE_ON_VALUES="${1:?rope_on_values (true|false) required}"
 SEED="${2:-42}"
+EXTRA="${3:-}"
 
 cd ~/PlatonicTransformers
 module purge
@@ -39,4 +42,5 @@ python mains/main_cifar10.py \
     --model.rope_on_values="$ROPE_ON_VALUES" \
     --dataset.data_dir=/scratch-shared/ebekkers/cifar10 \
     --system.num_workers=8 \
-    --logging.wandb_identity=platonic-transformers-public
+    --logging.wandb_identity=platonic-transformers-public \
+    $EXTRA

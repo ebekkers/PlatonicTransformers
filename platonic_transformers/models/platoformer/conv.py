@@ -78,12 +78,14 @@ class PlatonicConv(nn.Module):
         attention: bool = False,
         use_key: bool = False,
         rope_on_values: bool = False,
+        rope_v_separate_freqs: bool = False,
         attention_backend: str = "scatter",
     ):
         super().__init__()
 
         # --- Group Setup ---
         self.rope_on_values = rope_on_values
+        self.rope_v_separate_freqs = rope_v_separate_freqs
         if attention_backend not in ("scatter", "flash"):
             raise ValueError(
                 f"attention_backend must be 'scatter' or 'flash', got {attention_backend!r}"
@@ -143,8 +145,22 @@ class PlatonicConv(nn.Module):
                 learned_freqs=learned_freqs,
                 freq_init=freq_init
             )
+            if rope_on_values and rope_v_separate_freqs:
+                self.rope_emb_v = PlatonicRoPE(
+                    embed_dim=embed_dim,
+                    num_heads=self.effective_num_heads,
+                    head_dim=self.head_dim,
+                    solid_name=solid_name,
+                    spatial_dims=spatial_dims,
+                    freq_sigma=freq_sigma,
+                    learned_freqs=learned_freqs,
+                    freq_init=freq_init,
+                )
+            else:
+                self.rope_emb_v = None
         else:
             self.register_buffer('rope_emb', None)
+            self.rope_emb_v = None
 
         # Final equivariant linear layer
         self.out_proj = PlatonicLinear(embed_dim, out_channels, solid_name, bias=bias)
@@ -168,7 +184,8 @@ class PlatonicConv(nn.Module):
             q = self.rope_emb(q, pos)
             k = self.rope_emb(k, pos)
             if self.rope_on_values:
-                v = self.rope_emb(v, pos)
+                v_rope = self.rope_emb_v if self.rope_emb_v is not None else self.rope_emb
+                v = v_rope(v, pos)
 
         return q, k, v
 

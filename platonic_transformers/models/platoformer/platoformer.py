@@ -71,6 +71,7 @@ class PlatonicTransformer(nn.Module):
         freq_init: str = 'random',
         use_key: bool = False,
         rope_on_values: bool = False,
+        rope_v_separate_freqs: bool = False,
         attention_backend: str = "scatter",  # "scatter" | "flash"
         activation: str = "gelu",
         # In-model patchification: learnable Platonic EdgeConv (FPS centers
@@ -160,6 +161,7 @@ class PlatonicTransformer(nn.Module):
                 attention=attention,
                 use_key=use_key,
                 rope_on_values=rope_on_values,
+                rope_v_separate_freqs=rope_v_separate_freqs,
                 attention_backend=attention_backend,
             ))
 

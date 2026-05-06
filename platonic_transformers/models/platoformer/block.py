@@ -122,6 +122,7 @@ class PlatonicBlock(nn.Module):
         attention: bool = False,
         use_key: bool = False,
         rope_on_values: bool = False,
+        rope_v_separate_freqs: bool = False,
         attention_backend: str = "scatter",
     ) -> None:
         super().__init__()
@@ -156,6 +157,7 @@ class PlatonicBlock(nn.Module):
             attention=attention,
             use_key=use_key,
             rope_on_values=rope_on_values,
+            rope_v_separate_freqs=rope_v_separate_freqs,
             attention_backend=attention_backend,
         )
 
