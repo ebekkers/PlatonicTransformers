@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --partition=gpu_h100
-#SBATCH --account=gusei11738
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
@@ -20,9 +19,8 @@ SEED="${2:-42}"
 cd ~/PlatonicTransformers
 module purge
 module load 2024
-module load Python/3.12.3-GCCcore-13.3.0
 module load CUDA/12.6.0
-source /scratch-shared/ebekkers/platonic-pair-qm9/.venv/bin/activate
+source .venv/bin/activate
 
 mkdir -p logs data
 
