@@ -146,6 +146,10 @@ class PlatonicConv(nn.Module):
                 freq_init=freq_init
             )
             if rope_on_values and rope_v_separate_freqs:
+                # NOTE: with freq_init='spiral', both rope_emb and rope_emb_v
+                # construct byte-identical freqs and stay in lockstep through
+                # training. Use freq_init='random' for genuinely independent
+                # frequency parameters.
                 self.rope_emb_v = PlatonicRoPE(
                     embed_dim=embed_dim,
                     num_heads=self.effective_num_heads,
@@ -156,13 +160,6 @@ class PlatonicConv(nn.Module):
                     learned_freqs=learned_freqs,
                     freq_init=freq_init,
                 )
-                # Break deterministic-init symmetry: with freq_init='spiral'
-                # both rope_emb and rope_emb_v construct byte-identical freqs,
-                # so without perturbation v would shadow q/k throughout training.
-                with torch.no_grad():
-                    self.rope_emb_v.freqs.add_(
-                        0.1 * freq_sigma * torch.randn_like(self.rope_emb_v.freqs)
-                    )
             else:
                 self.rope_emb_v = None
         else:
