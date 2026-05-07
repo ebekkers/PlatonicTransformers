@@ -56,7 +56,11 @@ class CIFAR10Model(pl.LightningModule):
         # CIFAR-10 point cloud: 3 scalar features (RGB) per patch + 2D position vectors
         patch_size = config.dataset.patch_size
         in_channels_scalar = patch_size * patch_size * 3
-        in_channels_vector = 2
+        # Default vec input is the rotated 2D basis (2 channels). When
+        # use_up_vector=true we instead pass a single rotated up-direction
+        # channel, matching the ScanObjectNN convention.
+        self.use_up_vector = config.model.get("use_up_vector", False)
+        in_channels_vector = 1 if self.use_up_vector else 2
 
         # Number of patches in the point cloud
         self.avg_num_nodes = (config.dataset.image_size // patch_size) ** 2
@@ -86,6 +90,7 @@ class CIFAR10Model(pl.LightningModule):
             scalar_task_level=config.model.scalar_task_level,
             vector_task_level=config.model.vector_task_level,
             ffn_readout=config.model.ffn_readout,
+            trivial_readout=config.model.get("trivial_readout", False),
             # Attention block specification
             mean_aggregation=config.model.mean_aggregation,
             dropout=config.model.dropout,
@@ -119,10 +124,19 @@ class CIFAR10Model(pl.LightningModule):
             rot = self.rotation_generator().type_as(data.pos)
             data.pos = torch.einsum('ij,bj->bi', rot, data.pos)
         else:
-            rot = torch.eye(2, device=data.pos.device)
+            rot = torch.eye(2, device=data.pos.device, dtype=data.pos.dtype)
 
-        # Create vector features from rotation matrix
-        vec = rot.transpose(-2, -1).unsqueeze(0).expand(data.pos.shape[0], -1, -1)
+        # Vector input. Two modes:
+        #   use_up_vector=False → pass the rotated 2D basis (2 channels, [N,2,2])
+        #   use_up_vector=True  → pass a single rotated up-direction channel
+        #                         (1 channel, [N,1,2]). Up-axis is +y (axis 1).
+        if self.use_up_vector:
+            e_up = torch.zeros(2, device=data.pos.device, dtype=data.pos.dtype)
+            e_up[1] = 1.0
+            up_vec = rot @ e_up  # [2]
+            vec = up_vec.view(1, 1, 2).expand(data.pos.shape[0], -1, -1)
+        else:
+            vec = rot.transpose(-2, -1).unsqueeze(0).expand(data.pos.shape[0], -1, -1)
 
         # Forward pass through the network
         pred, _ = self.net(

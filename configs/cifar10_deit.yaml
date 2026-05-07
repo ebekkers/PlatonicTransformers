@@ -23,6 +23,8 @@ model:
   scalar_task_level: "graph"  # Graph-level classification
   vector_task_level: "graph"
   ffn_readout: false
+  trivial_readout: false  # if true, readout uses standard linear layers (symmetry-break at head)
+  use_up_vector: false    # if true, replace 2-channel rotated basis with 1-channel up-vector input
   
   # Attention settings
   mean_aggregation: false
