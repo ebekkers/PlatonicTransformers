@@ -103,6 +103,9 @@ class CIFAR10Model(pl.LightningModule):
             rope_v_separate_freqs=config.model.get("rope_v_separate_freqs", False),
         )
 
+        if config.model.get("compile", True):
+            self.net = torch.compile(self.net)
+
         # Setup metrics
         num_classes = config.dataset.num_classes
         self.train_metric = torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)

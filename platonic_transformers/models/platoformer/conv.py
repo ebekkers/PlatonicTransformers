@@ -352,8 +352,9 @@ class PlatonicConv(nn.Module):
                 output = self.graph_scattered_attention(q_rope, k_rope, v, batch, pos)
             # Un-rotate output (GTA Eq. 5: O_i = ρ(g_i)⁻¹ * weighted_sum)
             if self.rope_on_values and self.rope_emb is not None:
+                v_rope = self.rope_emb_v if self.rope_emb_v is not None else self.rope_emb
                 output_ghd = output.view(-1, self.num_G, self.effective_num_heads, self.head_dim)
-                output_ghd = self.rope_emb(output_ghd, pos, inverse=True)
+                output_ghd = v_rope(output_ghd, pos, inverse=True)
                 output = output_ghd.flatten(-3, -1)
         else:
             kv_outer_product = torch.einsum('nghd,nghe->nghde', k_rope, v)
@@ -369,7 +370,8 @@ class PlatonicConv(nn.Module):
             output = torch.einsum('nghd,nghde->nghe', q_rope, kv_kernel[batch])
             # Un-rotate output for linear attention
             if self.rope_on_values and self.rope_emb is not None:
-                output = self.rope_emb(output, pos, inverse=True)
+                v_rope = self.rope_emb_v if self.rope_emb_v is not None else self.rope_emb
+                output = v_rope(output, pos, inverse=True)
             output = output.flatten(-3, -1) # -> (..., G, H, H_dim) -> (..., G*H*H_dim)
 
         return self.out_proj(output)
@@ -396,7 +398,8 @@ class PlatonicConv(nn.Module):
             attn_output = attn_output.transpose(1, 2).view(B, S, self.num_G, self.effective_num_heads, self.head_dim)
             # Un-rotate output (GTA Eq. 5: O_i = ρ(g_i)⁻¹ * weighted_sum)
             if self.rope_on_values and self.rope_emb is not None:
-                attn_output = self.rope_emb(attn_output, pos, inverse=True)
+                v_rope = self.rope_emb_v if self.rope_emb_v is not None else self.rope_emb
+                attn_output = v_rope(attn_output, pos, inverse=True)
             output = attn_output.reshape(B, S, self.embed_dim)
         else:
             if mask is not None:
