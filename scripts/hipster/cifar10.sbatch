@@ -2,7 +2,7 @@
 #SBATCH --partition=performance
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64G
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --time=1-00:00:00
 #SBATCH --output=/home/ebekker/PlatonicTransformers/logs/%x_%j.out
 #SBATCH --error=/home/ebekker/PlatonicTransformers/logs/%x_%j.err
