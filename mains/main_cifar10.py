@@ -56,11 +56,12 @@ class CIFAR10Model(pl.LightningModule):
         # CIFAR-10 point cloud: 3 scalar features (RGB) per patch + 2D position vectors
         patch_size = config.dataset.patch_size
         in_channels_scalar = patch_size * patch_size * 3
-        # Default vec input is the rotated 2D basis (2 channels). When
-        # use_up_vector=true we instead pass a single rotated up-direction
-        # channel, matching the ScanObjectNN convention.
+        # Optional symmetry-breaking vec input: a single constant up-direction
+        # channel (rotated under train_augm). Without it the model receives no
+        # vec input at all (input_dim_vec=0, vec=None), and any symmetry
+        # breaking must come from elsewhere (e.g. trivial_readout).
         self.use_up_vector = config.model.get("use_up_vector", False)
-        in_channels_vector = 1 if self.use_up_vector else 2
+        in_channels_vector = 1 if self.use_up_vector else 0
 
         # Number of patches in the point cloud
         self.avg_num_nodes = (config.dataset.image_size // patch_size) ** 2
@@ -126,17 +127,15 @@ class CIFAR10Model(pl.LightningModule):
         else:
             rot = torch.eye(2, device=data.pos.device, dtype=data.pos.dtype)
 
-        # Vector input. Two modes:
-        #   use_up_vector=False → pass the rotated 2D basis (2 channels, [N,2,2])
-        #   use_up_vector=True  → pass a single rotated up-direction channel
-        #                         (1 channel, [N,1,2]). Up-axis is +y (axis 1).
+        # Optional up-vector input (1 channel, [N,1,2]). Up-axis is +y. Rotates
+        # consistently with `data.pos` when train_augm is on; otherwise constant.
         if self.use_up_vector:
             e_up = torch.zeros(2, device=data.pos.device, dtype=data.pos.dtype)
             e_up[1] = 1.0
             up_vec = rot @ e_up  # [2]
             vec = up_vec.view(1, 1, 2).expand(data.pos.shape[0], -1, -1)
         else:
-            vec = rot.transpose(-2, -1).unsqueeze(0).expand(data.pos.shape[0], -1, -1)
+            vec = None
 
         # Forward pass through the network
         pred, _ = self.net(
